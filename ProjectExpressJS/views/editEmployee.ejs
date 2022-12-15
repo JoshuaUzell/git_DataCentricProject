@@ -1,7 +1,13 @@
 <html>
+
 <body>
     <h1>Edit Employee</h1>
-   
+    <ul>
+        <li <%= isHidingEidError %> > Employee EID cannot change</li>
+        <li <%= isHidingNameError %> > Employee name must be at least 5 characters</li>
+        <li <%= isHidingRoleError %> > Employee Role can be either Manager or Employee</li>
+        <li <%= isHidingSalaryError %> > Employee salary must be greater than 0</li>
+    </ul>
     <form action="/employees/edit/<%= employeeID %>" method="POST">
         <label for="eid">EID:</label><br>
         <input type="text" id="<%= employeeID %>" name="eid" value="<%= employeeID %>"><br>
@@ -19,4 +25,5 @@
     </form>
     <a href="/">Home</a>
 </body>
+
 </html>
