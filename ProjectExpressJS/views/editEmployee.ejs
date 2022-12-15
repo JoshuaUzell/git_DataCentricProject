@@ -1,0 +1,22 @@
+<html>
+<body>
+    <h1>Edit Employee</h1>
+   
+    <form action="/employees/edit/<%= employeeID %>" method="POST">
+        <label for="eid">EID:</label><br>
+        <input type="text" id="<%= employeeID %>" name="eid" value="<%= employeeID %>"><br>
+
+        <label for="name">Name:</label><br>
+        <input type="text" id="<%= employeeName %>" name="name" value="<%= employeeName %>"><br>
+
+        <label for="role">Role:</label><br>
+        <input type="text" id="<%= employeeRole %>" name="role" value="<%= employeeRole %>"><br>
+
+        <label for="salary">Salary:</label><br>
+        <input type="text" id="<%= employeeSalary %>" name="salary" value="<%= employeeSalary %>"><br>
+        <br>
+        <input type="submit" value="Update">
+    </form>
+    <a href="/">Home</a>
+</body>
+</html>
