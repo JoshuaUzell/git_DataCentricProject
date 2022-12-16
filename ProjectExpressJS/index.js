@@ -56,7 +56,7 @@ app.get('/', (req, res) => {
 
     console.log("GET received")
     res.send("<a href='/employees'>Employees</a>"
-        + "<br><a href='/employees'>Departments</a>"
+        + "<br><a href='/depts'>Departments</a>"
         + "<br><a href='/employees'>Employees(MongoDB)</a>"
         + "<br><a href='/test'>TEST(Remove at end of project)</a>")
 })
@@ -78,7 +78,7 @@ app.get('/employees', (req, res) => {
         });
 })
 
-//GET REQUEST
+//GET REQUEST for employee edit page
 app.get('/employees/edit/:eid', (req, res) => {
 
     var employee = employeesList.find((employee) => {
@@ -103,7 +103,7 @@ app.get('/employees/edit/:eid', (req, res) => {
     }
 })
 
-//POST REQUEST
+//POST REQUEST for employee edit page
 app.post('/employees/edit/:eid', (req, res) => {
 
     var employee = employeesList.find((employee) => {
@@ -129,7 +129,7 @@ app.post('/employees/edit/:eid', (req, res) => {
         nameErrorVisiblity = "hidden"
         hasNameErrorOccured = false
     }
-    
+
     //Check if Role is equal to Manager or Employee 
     if (!req.body.role.localeCompare(managerRole) || !req.body.role.localeCompare(employeeRole)) {
         roleErrorVisiblity = "hidden"
@@ -189,13 +189,62 @@ app.get('/test', (req, res) => {
     })
 })
 
+
 // A GET request that is made to the departments page
 app.get('/depts', (req, res) => {
-    console.log("GET received")
-    res.send("<h1>Departments</h1>")
 
-    //NOTE**
-    //Insert employees table from employeesDB.sql 
+    // Execute a mySQL query using the connection pool
+    pool.query('SELECT * FROM dept')
+        .then(results => {
+            // Render an EJS template with the data from the query
+            res.render('departments', { departments: results })
+        })
+        .catch(error => {
+            // Handle any errors that occurred
+            console.error(error);
+            pool.end();
+        });
+
+})
+
+//Get Request - LOOK HERE - FIND A WAY TO DELETE DEPARTMENT
+app.get('/depts/delete/:did', (req, res) => {
+
+    // Execute a mySQL query using the connection pool
+    pool.query('Select * from emp_dept')
+        .then(results => {
+            var empDepartment = results.find((empDept) => {
+                if (empDept.did == req.params.did) {
+                    return empDept
+                }
+            })
+
+            if (empDepartment != undefined) {
+                res.send(`<h1>Error Message<h1>\n <h2>Department ${req.params.did} has employees and cannot be deleted</h2>
+                <a href="/">Home</a>`)
+            } else {
+                //Insert code into SQL database here
+                var myQuery = {
+                    sql: 'delete from dept where did = ?',
+                    values: [req.params.did]
+                }
+                pool.query(myQuery)
+                    .then((data) => {
+                        console.log(data)
+                    })
+                    .catch(error => {
+                        console.log(error)
+                    })
+                console.log(`Department ${req.params.did} has no employees and can be deleted`)
+                res.redirect('/depts')
+            }
+
+        })
+        .catch(error => {
+            // Handle any errors that occurred
+            console.error(error);
+            pool.end();
+        });
 
 })
 

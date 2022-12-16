@@ -1,0 +1,49 @@
+<style>
+    table,
+    th,
+    td {
+      border: 2px solid black;
+      border-collapse: separate;
+    }
+  </style>
+  
+  <html>
+  
+  <head>
+    <title>Departments</title>
+  </head>
+  
+  <body>
+    <h1>Departments</h1>
+    <br>
+    <br>
+    <table>
+      <tr>
+        <th>DID</th>
+        <th>NAME</th>
+        <th>BUDGET</th>
+        <th>LOCATION</th>
+        <th>DELETE</th>
+      </tr>
+      <% departments.forEach((department)=>{%><tr>
+          <td>
+            <%=department.did%>
+          </td>
+          <td>
+            <%=department.dname%>
+          </td>
+          <td>
+            <%=department.budget%>
+          </td>
+          <td>
+            <%=department.lid%>
+          </td>
+          <td>
+            <a href="/depts/delete/<%= department.did %>">Delete</a>
+          </td>
+        </tr>
+        <%})%>
+    </table>
+  </body>
+  
+  </html>
