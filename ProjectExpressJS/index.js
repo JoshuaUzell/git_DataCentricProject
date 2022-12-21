@@ -1,3 +1,4 @@
+//Imports for the project
 const express = require('express')
 const app = express()
 const pmysql = require('promise-mysql')
@@ -5,7 +6,10 @@ const ejs = require('ejs');
 const bodyParser = require('body-parser')
 const MongoClient = require('mongodb').MongoClient
 
+//Creates a pool for mySQL
 var pool;
+
+//Array lists for the employeesSQL and MongoDB databases
 var employeesList = []
 var employeesMongoDBList = []
 
@@ -15,7 +19,7 @@ var nameErrorVisiblity = "hidden"
 var roleErrorVisiblity = "hidden"
 var salaryErrorVisibilty = "hidden"
 
-//Boolean for employee error
+//Boolean for employee errors
 var hasEidErrorOccured = false
 var hasNameErrorOccured = false
 var hasRoleErrorOccured = false
@@ -35,6 +39,7 @@ var hasErrorEmailErrorOccured = false
 var managerRole = "Manager"
 var employeeRole = "Employee"
 
+//Sets up the view engine and the body-parser 
 app.set('view engine', 'ejs')
 app.use(bodyParser.urlencoded({ extended: false }))
 
@@ -48,20 +53,21 @@ MongoClient.connect('mongodb://localhost:27017')
         console.log(error.message)
     })
 
+//Creates a pool for mySQL - no password as this app uses WAMP
 pmysql.createPool({
     host: 'localhost',
     user: 'root',
     password: '',
     database: 'proj2022'
 })
-    .then((p) => { //Resolved promise runs this code (brackets around p not needed, just for clarity)
+    .then((p) => { //Resolved promise runs this code 
         pool = p
     })
-    .catch((e) => { //If not, error occurs (brackets around e not needed, just for clarity)
+    .catch((e) => { //If not, error occurs
         console.log("pool error:" + e)
     })
 
-// A GET request that is made to the homepage
+//GET REQUEST that is made to the homepage
 app.get('/', (req, res) => {
 
     //Sets Error values to false when user is on homepage
@@ -86,13 +92,13 @@ app.get('/', (req, res) => {
     phoneErrorVisiblity = "hidden"
     emailErrorVisiblity = "hidden"
 
-    console.log("GET received")
+    //Links to the different pages of the project
     res.send("<a href='/employees'>Employees</a>"
         + "<br><a href='/depts'>Departments</a>"
         + "<br><a href='/employeesMongoDB'>Employees(MongoDB)</a>")
 })
 
-// A GET request that is made to the employees page
+//GET REQUEST that is made to the employees page
 app.get('/employees', (req, res) => {
 
     // Execute a mySQL query using the connection pool
@@ -112,12 +118,15 @@ app.get('/employees', (req, res) => {
 //GET REQUEST for employee edit page
 app.get('/employees/edit/:eid', (req, res) => {
 
+    //Checks if the url eid is the same as the employees eid in mySQL
+    //If so, return the employee
     var employee = employeesList.find((employee) => {
         if (employee.eid == req.params.eid) {
             return employee
         }
     })
 
+    //If an employee with the same eid was found earlier, display edit page to the user
     if (employee != undefined) {
         res.render('editEmployee', {
             employeeID: employee.eid,
@@ -137,13 +146,14 @@ app.get('/employees/edit/:eid', (req, res) => {
 //POST REQUEST for employee edit page
 app.post('/employees/edit/:eid', (req, res) => {
 
+    //If an employee eid is the same as the url eid, return the employee
     var employee = employeesList.find((employee) => {
         if (employee.eid == req.params.eid) {
             return employee
         }
     })
 
-    //Check if Eid has changed
+    //Check if Eid has changed, and if so show the error message
     if (req.body.eid != req.params.eid) {
         eidErrorVisiblity = "visible"
         hasEidErrorOccured = true
@@ -161,7 +171,7 @@ app.post('/employees/edit/:eid', (req, res) => {
         hasNameErrorOccured = false
     }
 
-    //Check if Role is equal to Manager or Employee 
+    //Check if Role is not equal to Manager or Employee 
     if (!req.body.role.localeCompare(managerRole) || !req.body.role.localeCompare(employeeRole)) {
         roleErrorVisiblity = "hidden"
         hasRoleErrorOccured = false
@@ -170,7 +180,7 @@ app.post('/employees/edit/:eid', (req, res) => {
         hasRoleErrorOccured = true
     }
 
-    //Check if Salary is greater than 0
+    //Check if Salary is less than 0, if so display error
     if (req.body.salary <= 0) {
         salaryErrorVisibilty = "visible"
         hasSalaryErrorOccured = true
@@ -179,8 +189,7 @@ app.post('/employees/edit/:eid', (req, res) => {
         hasSalaryErrorOccured = false
     }
 
-
-
+    //IF there are still any error messages, display them to the user
     if (hasEidErrorOccured || hasNameErrorOccured || hasRoleErrorOccured || hasSalaryErrorOccured) {
         res.render('editEmployee', {
             employeeID: employee.eid,
@@ -193,7 +202,7 @@ app.post('/employees/edit/:eid', (req, res) => {
             isHidingSalaryError: salaryErrorVisibilty
         })
     } else {
-        //Insert code into SQL database here
+        //Insert employee into SQL database 
         var myQuery = {
             sql: 'update employee set ename = ?, role = ?, salary = ? where eid = ?',
             values: [req.body.name, req.body.role, req.body.salary, req.body.eid]
@@ -212,8 +221,7 @@ app.post('/employees/edit/:eid', (req, res) => {
 
 })
 
-
-// A GET request that is made to the departments page
+//GET REQUEST that is made to the departments page
 app.get('/depts', (req, res) => {
 
     // Execute a mySQL query using the connection pool
@@ -230,10 +238,10 @@ app.get('/depts', (req, res) => {
 
 })
 
-//Get Request - LOOK HERE - FIND A WAY TO DELETE DEPARTMENT
+//GET REQUEST for departments/delete page
 app.get('/depts/delete/:did', (req, res) => {
 
-    // Execute a mySQL query using the connection pool
+    //Execute a mySQL query using the connection pool
     pool.query('Select * from emp_dept')
         .then(results => {
             var empDepartment = results.find((empDept) => {
@@ -242,11 +250,12 @@ app.get('/depts/delete/:did', (req, res) => {
                 }
             })
 
+            //If there is already a department associated with an employee, send error message saying it cannot be deleted
             if (empDepartment != undefined) {
                 res.send(`<h1>Error Message<h1>\n <h2>Department ${req.params.did} has employees and cannot be deleted</h2>
                 <a href="/">Home</a>`)
             } else {
-                //Insert code into SQL database here
+                //Delete the department from the mySQL database
                 var myQuery = {
                     sql: 'delete from dept where did = ?',
                     values: [req.params.did]
@@ -258,7 +267,6 @@ app.get('/depts/delete/:did', (req, res) => {
                     .catch(error => {
                         console.log(error)
                     })
-                console.log(`Department ${req.params.did} has no employees and can be deleted`)
                 res.redirect('/depts')
             }
 
@@ -271,13 +279,14 @@ app.get('/depts/delete/:did', (req, res) => {
 
 })
 
-// A GET request that is made to the employees(mongoDB) page
+//GET REQUEST that is made to the employees(mongoDB) page
 app.get('/employeesMongoDB', (req, res) => {
 
+    //Finds all the employees in the Mongo Database and displays them on the page
     var cursor = coll.find()
     cursor.toArray()
         .then((results) => {
-            employeesMongoDBList = results
+            employeesMongoDBList = results //stores the results in the an array for later use
 
             // Render an EJS template with the data from the query
             res.render('employeesMongoDB', { mongoEmployees: results })
@@ -288,12 +297,11 @@ app.get('/employeesMongoDB', (req, res) => {
 
 })
 
-
 //GET REQUEST for employeeMongo add page
 app.get('/employeesMongoDB/add', (req, res) => {
 
-    // Execute a mySQL query using the connection pool 
-    //Done in homepage so when user enters employeeMongo for first time
+    //Execute a mySQL query using the connection pool 
+    //so when the user enters employeeMongo for first time
     //The employeesList will contain all sql employees when checking if the mySql eid is unique
     pool.query('SELECT * FROM employee')
         .then(results => {
@@ -313,9 +321,8 @@ app.get('/employeesMongoDB/add', (req, res) => {
     })
 })
 
-//GET REQUEST for employeeMongo add page
+//POST REQUEST for employeeMongo add page
 app.post('/employeesMongoDB/add', (req, res) => {
-
 
     //Checking if an employee in the mongo database has the same
     //eid, return that employee
@@ -366,6 +373,9 @@ app.post('/employeesMongoDB/add', (req, res) => {
     }
 
     //Check if there are any errors, display them to user
+    //Else if eid already exits in the Mongo database, display MongoDB error
+    //Else if the eid doesn't exist in the mySQL database, display mySQL error
+    //Otherwise if there are no errors, add a new employee document to the mongoDB database
     if (hasErrorMongoEidOccured || hasPhoneErrorOccured || hasErrorEmailErrorOccured) {
         res.render('addEmployee', {
             isEidMongoErrorVisible: eidMongoErrorVisiblity,
@@ -379,8 +389,8 @@ app.post('/employeesMongoDB/add', (req, res) => {
         res.send(`<h1>Error Message<h1>\n <h2>Employee ${req.body.eid} doesn't exist in MySQL DB</h2>
                 <a href="/">Home</a>`)
     } else {
-        
-        const employeeDocument = {_id: req.body.eid, phone: req.body.phone, email: req.body.email}
+
+        const employeeDocument = { _id: req.body.eid, phone: req.body.phone, email: req.body.email }
         coll.insertOne(employeeDocument)
             .then((results) => {
                 console.log(results)
