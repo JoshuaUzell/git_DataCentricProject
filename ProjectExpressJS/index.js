@@ -89,8 +89,7 @@ app.get('/', (req, res) => {
     console.log("GET received")
     res.send("<a href='/employees'>Employees</a>"
         + "<br><a href='/depts'>Departments</a>"
-        + "<br><a href='/employeesMongoDB'>Employees(MongoDB)</a>"
-        + "<br><a href='/test'>TEST(Remove at end of project)</a>")
+        + "<br><a href='/employeesMongoDB'>Employees(MongoDB)</a>")
 })
 
 // A GET request that is made to the employees page
@@ -213,14 +212,6 @@ app.post('/employees/edit/:eid', (req, res) => {
 
 })
 
-//This get method is used for testing
-app.get('/test', (req, res) => {
-    res.render('testTable', {
-        data: 2,
-        searchArray: ['Tom', 'Jerry', 'Peter']
-    })
-})
-
 
 // A GET request that is made to the departments page
 app.get('/depts', (req, res) => {
@@ -292,7 +283,7 @@ app.get('/employeesMongoDB', (req, res) => {
             res.render('employeesMongoDB', { mongoEmployees: results })
         })
         .catch((error) => {
-
+            res.render("Error occured")
         })
 
 })
@@ -301,7 +292,7 @@ app.get('/employeesMongoDB', (req, res) => {
 //GET REQUEST for employeeMongo add page
 app.get('/employeesMongoDB/add', (req, res) => {
 
- // Execute a mySQL query using the connection pool 
+    // Execute a mySQL query using the connection pool 
     //Done in homepage so when user enters employeeMongo for first time
     //The employeesList will contain all sql employees when checking if the mySql eid is unique
     pool.query('SELECT * FROM employee')
@@ -340,7 +331,7 @@ app.post('/employeesMongoDB/add', (req, res) => {
         if (employee.eid == req.body.eid) {
             console.log("Sql employee found")
             return employee
-        }else{
+        } else {
             console.log("Sql employee not found")
         }
     })
@@ -384,12 +375,21 @@ app.post('/employeesMongoDB/add', (req, res) => {
     } else if (mongoEmpWithSameEid != undefined) {
         res.send(`<h1>Error Message<h1>\n <h2>Error EID ${req.body.eid} already exists in MongoDB</h2>
                 <a href="/">Home</a>`)
-    }else if (sqlEmpWithSameEid == undefined) {
+    } else if (sqlEmpWithSameEid == undefined) {
         res.send(`<h1>Error Message<h1>\n <h2>Employee ${req.body.eid} doesn't exist in MySQL DB</h2>
                 <a href="/">Home</a>`)
-    }else{
-        console.log("Successful adding of employee!")
-        res.redirect("/employeesMongoDB")
+    } else {
+        
+        const employeeDocument = {_id: req.body.eid, phone: req.body.phone, email: req.body.email}
+        coll.insertOne(employeeDocument)
+            .then((results) => {
+                console.log(results)
+                console.log("Successful adding of employee!")
+                res.redirect("/employeesMongoDB")
+            })
+            .catch((error) => {
+                res.render("Error occured")
+            })
     }
 })
 
