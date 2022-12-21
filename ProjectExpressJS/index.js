@@ -101,7 +101,7 @@ app.get('/employees', (req, res) => {
         .then(results => {
             employeesList = results
             // Render an EJS template with the data from the query
-            res.render('employees', { employees: results })
+            res.render('employees', { employees: employeesList })
         })
         .catch(error => {
             // Handle any errors that occurred
@@ -301,6 +301,19 @@ app.get('/employeesMongoDB', (req, res) => {
 //GET REQUEST for employeeMongo add page
 app.get('/employeesMongoDB/add', (req, res) => {
 
+ // Execute a mySQL query using the connection pool 
+    //Done in homepage so when user enters employeeMongo for first time
+    //The employeesList will contain all sql employees when checking if the mySql eid is unique
+    pool.query('SELECT * FROM employee')
+        .then(results => {
+            employeesList = results
+        })
+        .catch(error => {
+            // Handle any errors that occurred
+            console.error(error);
+            pool.end();
+        });
+
     //Render ejs file of addEmployee.ejs here
     res.render('addEmployee', {
         isEidMongoErrorVisible: eidMongoErrorVisiblity,
@@ -312,14 +325,25 @@ app.get('/employeesMongoDB/add', (req, res) => {
 //GET REQUEST for employeeMongo add page
 app.post('/employeesMongoDB/add', (req, res) => {
 
-    console.log(employeesMongoDBList)
-    var empWithSameEid = employeesMongoDBList.find((employee) => {
+
+    //Checking if an employee in the mongo database has the same
+    //eid, return that employee
+    var mongoEmpWithSameEid = employeesMongoDBList.find((employee) => {
         if (employee._id == req.body.eid) {
-            console.log("If check worked")
             return employee
         }
     })
 
+    //Checking if an employee in the sql database has the same
+    //eid, return that employee
+    var sqlEmpWithSameEid = employeesList.find((employee) => {
+        if (employee.eid == req.body.eid) {
+            console.log("Sql employee found")
+            return employee
+        }else{
+            console.log("Sql employee not found")
+        }
+    })
 
     //Check if the eid is less than 4 characters
     if (req.body.eid.length < 4) {
@@ -357,9 +381,15 @@ app.post('/employeesMongoDB/add', (req, res) => {
             isPhoneErrorVisible: phoneErrorVisiblity,
             isEmailErrorVisible: emailErrorVisiblity
         })
-    } else if (empWithSameEid != undefined) {
+    } else if (mongoEmpWithSameEid != undefined) {
         res.send(`<h1>Error Message<h1>\n <h2>Error EID ${req.body.eid} already exists in MongoDB</h2>
                 <a href="/">Home</a>`)
+    }else if (sqlEmpWithSameEid == undefined) {
+        res.send(`<h1>Error Message<h1>\n <h2>Employee ${req.body.eid} doesn't exist in MySQL DB</h2>
+                <a href="/">Home</a>`)
+    }else{
+        console.log("Successful adding of employee!")
+        res.redirect("/employeesMongoDB")
     }
 })
 
@@ -369,10 +399,8 @@ function checkMyMailAddress(HTMLText) {
     var validate = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
 
     if (HTMLText.match(validate)) {
-        console.log("Email is correct!");
         return true;
     } else {
-        console.log("Email is not correct");
         return false;
     }
 }
