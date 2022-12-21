@@ -3,11 +3,13 @@ const app = express()
 const pmysql = require('promise-mysql')
 const ejs = require('ejs');
 const bodyParser = require('body-parser')
+const MongoClient = require('mongodb').MongoClient
 
 var pool;
 var employeesList = []
+var employeesMongoDBList = []
 
-//Error variables
+//Employee Error variables for visiblity 
 var eidErrorVisiblity = "hidden"
 var nameErrorVisiblity = "hidden"
 var roleErrorVisiblity = "hidden"
@@ -19,12 +21,32 @@ var hasNameErrorOccured = false
 var hasRoleErrorOccured = false
 var hasSalaryErrorOccured = false
 
+//Employee Mongo Error variables for visiblity 
+var eidMongoErrorVisiblity = "hidden"
+var phoneErrorVisiblity = "hidden"
+var emailErrorVisiblity = "hidden"
+
+//Boolean for employee Mongo errors
+var hasErrorMongoEidOccured = false
+var hasPhoneErrorOccured = false
+var hasErrorEmailErrorOccured = false
+
 //Role strings used for error checking of roles for employees
 var managerRole = "Manager"
 var employeeRole = "Employee"
 
 app.set('view engine', 'ejs')
 app.use(bodyParser.urlencoded({ extended: false }))
+
+//Connects to MongoDB database
+MongoClient.connect('mongodb://localhost:27017')
+    .then((client) => {
+        db = client.db('employeesDB')
+        coll = db.collection('employees')
+    })
+    .catch((error) => {
+        console.log(error.message)
+    })
 
 pmysql.createPool({
     host: 'localhost',
@@ -54,10 +76,20 @@ app.get('/', (req, res) => {
     roleErrorVisiblity = "hidden"
     salaryErrorVisibilty = "hidden"
 
+    //Set Error booleans to false
+    hasErrorMongoEidOccured = false
+    hasPhoneErrorOccured = false
+    hasErrorEmailErrorOccured = false
+
+    //Set Mongo Error Strings to be hidden on homepage
+    eidMongoErrorVisiblity = "hidden"
+    phoneErrorVisiblity = "hidden"
+    emailErrorVisiblity = "hidden"
+
     console.log("GET received")
     res.send("<a href='/employees'>Employees</a>"
         + "<br><a href='/depts'>Departments</a>"
-        + "<br><a href='/employees'>Employees(MongoDB)</a>"
+        + "<br><a href='/employeesMongoDB'>Employees(MongoDB)</a>"
         + "<br><a href='/test'>TEST(Remove at end of project)</a>")
 })
 
@@ -250,13 +282,100 @@ app.get('/depts/delete/:did', (req, res) => {
 
 // A GET request that is made to the employees(mongoDB) page
 app.get('/employeesMongoDB', (req, res) => {
-    console.log("GET received")
-    res.send("<h1>Employees (MongoDB)</h1>")
 
-    //NOTE**
-    //Insert from MongoDB 
+    var cursor = coll.find()
+    cursor.toArray()
+        .then((results) => {
+            employeesMongoDBList = results
+
+            // Render an EJS template with the data from the query
+            res.render('employeesMongoDB', { mongoEmployees: results })
+        })
+        .catch((error) => {
+
+        })
 
 })
+
+
+//GET REQUEST for employeeMongo add page
+app.get('/employeesMongoDB/add', (req, res) => {
+
+    //Render ejs file of addEmployee.ejs here
+    res.render('addEmployee', {
+        isEidMongoErrorVisible: eidMongoErrorVisiblity,
+        isPhoneErrorVisible: phoneErrorVisiblity,
+        isEmailErrorVisible: emailErrorVisiblity
+    })
+})
+
+//GET REQUEST for employeeMongo add page
+app.post('/employeesMongoDB/add', (req, res) => {
+
+    console.log(employeesMongoDBList)
+    var empWithSameEid = employeesMongoDBList.find((employee) => {
+        if (employee._id == req.body.eid) {
+            console.log("If check worked")
+            return employee
+        }
+    })
+
+
+    //Check if the eid is less than 4 characters
+    if (req.body.eid.length < 4) {
+        eidMongoErrorVisiblity = "visible"
+        hasErrorMongoEidOccured = true
+    } else {
+        eidMongoErrorVisiblity = "hidden"
+        hasErrorMongoEidOccured = false
+
+    }
+
+    //Check if phone number less than or equal to 5 characters
+    if (req.body.phone.length <= 5) {
+        phoneErrorVisiblity = "visible"
+        hasPhoneErrorOccured = true
+    } else {
+        phoneErrorVisiblity = "hidden"
+        hasPhoneErrorOccured = false
+    }
+
+    //Check if mongo employee email is valid
+    //Reference: https://www.educba.com/email-validation-in-javascript/ 
+    if (!checkMyMailAddress(req.body.email)) {
+        emailErrorVisiblity = "visible"
+        hasErrorEmailErrorOccured = true
+    } else {
+        emailErrorVisiblity = "hidden"
+        hasErrorEmailErrorOccured = false
+    }
+
+    //Check if there are any errors, display them to user
+    if (hasErrorMongoEidOccured || hasPhoneErrorOccured || hasErrorEmailErrorOccured) {
+        res.render('addEmployee', {
+            isEidMongoErrorVisible: eidMongoErrorVisiblity,
+            isPhoneErrorVisible: phoneErrorVisiblity,
+            isEmailErrorVisible: emailErrorVisiblity
+        })
+    } else if (empWithSameEid != undefined) {
+        res.send(`<h1>Error Message<h1>\n <h2>Error EID ${req.body.eid} already exists in MongoDB</h2>
+                <a href="/">Home</a>`)
+    }
+})
+
+//Checks if email is valid - 
+//Reference: https://www.educba.com/email-validation-in-javascript/
+function checkMyMailAddress(HTMLText) {
+    var validate = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+
+    if (HTMLText.match(validate)) {
+        console.log("Email is correct!");
+        return true;
+    } else {
+        console.log("Email is not correct");
+        return false;
+    }
+}
 
 //Listens on port 3000
 app.listen(3000, () => {

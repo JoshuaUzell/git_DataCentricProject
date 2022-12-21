@@ -1,0 +1,46 @@
+<style>
+    table,
+    th,
+    td {
+        border: 2px solid black;
+        border-collapse: separate;
+    }
+</style>
+
+<html>
+
+<head>
+    <title>Employees(MongoDB)</title>
+</head>
+
+<body>
+    <h1>Employees(MongoDB)</h1>
+    <br>
+    <br>
+     <a href='/employeesMongoDB/add'>Add Employee(MongoDB)</a>
+    <br>
+    <br>
+    <table>
+        <tr>
+            <th>EID</th>
+            <th>PHONE</th>
+            <th>EMAIL</th>
+        </tr>
+        <% mongoEmployees.forEach((employee)=>{%><tr>
+                <td>
+                    <%=employee._id%>
+                </td>
+                <td>
+                    <%=employee.phone%>
+                </td>
+                <td>
+                    <%=employee.email%>
+                </td>
+            </tr>
+            <%})%>
+    </table>
+    <br>
+    <a href='/'>Home</a>
+</body>
+
+</html>

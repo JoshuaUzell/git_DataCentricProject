@@ -1,0 +1,26 @@
+<html>
+
+<body>
+    <h1>Add Employee(MongoDB)</h1>
+    <ul>
+        <li <%= isEidMongoErrorVisible %>> Eid must be 4 characters</li>
+        <li <%= isPhoneErrorVisible %>> Phone must be greater than 5 characters</li>
+        <li <%= isEmailErrorVisible %>> Must be valid Email</li>
+        
+    </ul>
+    <form action="/employeesMongoDB/add" method="POST">
+        <label for="eid">EID:</label><br>
+        <input type="text" id="eid" name="eid" value=""><br>
+
+        <label for="name">Phone:</label><br>
+        <input type="text" id="phone" name="phone" value=""><br>
+
+        <label for="role">Email:</label><br>
+        <input type="text" id="email" name="email" value=""><br>
+
+        <input type="submit" value="Add">
+    </form>
+    <a href="/">Home</a>
+</body>
+
+</html>
